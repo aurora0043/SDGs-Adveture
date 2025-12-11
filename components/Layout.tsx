@@ -1,5 +1,5 @@
-import React from 'react';
-import { Map, Book, User, Menu, Compass } from 'lucide-react';
+import React, { useState } from 'react';
+import { Map, Book, User, Leaf, Menu, X } from 'lucide-react';
 import { ViewState, UserProgress } from '../types';
 
 interface LayoutProps {
@@ -19,104 +19,122 @@ export const Layout: React.FC<LayoutProps> = ({
   level,
   percentage
 }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const navItems = [
-    { id: 'MAP', label: '世界地圖', icon: Map },
+    { id: 'MAP', label: '冒險地圖', icon: Map },
     { id: 'KNOWLEDGE', label: '知識圖鑑', icon: Book },
-    { id: 'PROFILE', label: '會員中心', icon: User },
+    { id: 'PROFILE', label: '冒險護照', icon: User },
   ];
 
+  const handleNavClick = (view: ViewState) => {
+    setView(view);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="flex h-screen w-screen bg-sky-50 overflow-hidden">
-      {/* Sidebar (Desktop) / Bottom Nav (Mobile) */}
+    <div className="flex h-screen w-screen bg-ocean-bg overflow-hidden font-sans">
       
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full shadow-lg z-20">
-        <div className="p-6 flex items-center gap-3">
-          <div className="bg-indigo-600 p-2 rounded-lg text-white">
-            <Compass size={28} />
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+            className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar (Desktop Fixed / Mobile Drawer) */}
+      <aside className={`
+          fixed md:static inset-y-0 left-0 z-50 w-72 bg-white/95 backdrop-blur-xl border-r-4 border-nature-light h-full shadow-2xl md:shadow-xl rounded-r-[3rem] md:my-4 md:ml-4 md:h-[calc(100vh-2rem)] transition-transform duration-300 ease-in-out
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        <div className="p-8 pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-500 p-2.5 rounded-2xl text-white shadow-lg shadow-emerald-200 transform -rotate-6">
+                <Leaf size={28} fill="currentColor" />
+            </div>
+            <h1 className="font-black text-2xl text-slate-700 tracking-tight">
+                SDG <span className="text-emerald-500">島嶼</span>
+            </h1>
           </div>
-          <h1 className="font-black text-xl text-slate-800 tracking-tight">SDG 冒險島</h1>
+          {/* Close button for mobile */}
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden p-2 text-slate-400 hover:text-slate-600 bg-slate-100 rounded-full"
+          >
+            <X size={24} />
+          </button>
         </div>
 
         {/* User Stats Widget */}
-        <div className="mx-4 p-4 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl border border-indigo-100 mb-6">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 font-bold">
+        <div className="mx-6 p-5 bg-nature-light rounded-3xl border-2 border-dashed border-nature-mid mb-6 relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 bg-yellow-200 w-16 h-16 rounded-full opacity-50"></div>
+          
+          <div className="flex items-center gap-3 mb-3 relative z-10">
+            <div className="w-12 h-12 rounded-full bg-white border-4 border-nature-mid flex items-center justify-center text-nature-dark font-black text-lg shadow-sm">
               {progress.userName.charAt(0)}
             </div>
             <div>
-              <p className="font-bold text-slate-700">{progress.userName}</p>
-              <p className="text-xs text-slate-500 font-bold bg-yellow-200 px-2 py-0.5 rounded-full inline-block text-yellow-800">
-                Lv. {level}
+              <p className="font-black text-slate-700 text-lg">{progress.userName}</p>
+              <p className="text-xs text-white font-bold bg-nature-mid px-2 py-0.5 rounded-full inline-block shadow-sm">
+                等級 {level}
               </p>
             </div>
           </div>
-          <div className="w-full bg-white h-2.5 rounded-full overflow-hidden border border-indigo-100">
+          <div className="w-full bg-white h-4 rounded-full overflow-hidden border-2 border-white shadow-inner relative z-10">
             <div 
-              className="bg-indigo-500 h-full rounded-full transition-all duration-500" 
+              className="bg-gradient-to-r from-lime-400 to-green-500 h-full rounded-full transition-all duration-500" 
               style={{ width: `${percentage}%` }}
             ></div>
           </div>
-          <p className="text-right text-xs text-slate-400 mt-1">{percentage}% 完成</p>
+          <p className="text-right text-xs text-nature-dark/70 font-bold mt-2">世界修復度 {percentage}%</p>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 px-6 space-y-3">
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setView(item.id as ViewState)}
-              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl font-bold transition-all
+              onClick={() => handleNavClick(item.id as ViewState)}
+              className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-bold transition-all duration-300 group
                 ${currentView === item.id 
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' 
-                  : 'text-slate-500 hover:bg-slate-100'
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200 scale-105' 
+                  : 'text-slate-400 hover:bg-slate-50 hover:text-emerald-500'
                 }`}
             >
-              <item.icon size={20} />
+              <item.icon size={22} strokeWidth={2.5} className={`transition-transform duration-300 ${currentView === item.id ? 'animate-bounce' : 'group-hover:scale-110'}`} />
               {item.label}
             </button>
           ))}
         </nav>
 
-        <div className="p-4 text-center">
-            <p className="text-xs text-slate-400">© 2024 SDG Adventure</p>
+        <div className="p-6 text-center">
+             <div className="inline-block p-2 bg-slate-100 rounded-xl">
+                <p className="text-[10px] text-slate-400 font-bold">SDG Adventure v1.0</p>
+             </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 h-full overflow-hidden relative flex flex-col">
+      <main className="flex-1 h-full overflow-hidden relative flex flex-col bg-ocean-pattern">
+        
         {/* Mobile Header */}
-        <header className="md:hidden h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 z-20 shadow-sm">
-           <div className="flex items-center gap-2">
-              <div className="bg-indigo-600 p-1.5 rounded-lg text-white">
-                <Compass size={20} />
-              </div>
-              <span className="font-black text-lg text-slate-800">SDG Adventure</span>
+        <header className="md:hidden h-20 bg-white/80 backdrop-blur border-b border-emerald-100 flex items-center justify-between px-6 z-20 shadow-sm rounded-b-[2rem] flex-shrink-0">
+           <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 -ml-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
+              >
+                <Menu size={28} strokeWidth={2.5} />
+              </button>
+              <span className="font-black text-xl text-slate-700">冒險島</span>
            </div>
            <div className="flex items-center gap-2">
-               <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">Lv.{level}</span>
+               <span className="text-xs font-black bg-nature-light text-nature-dark px-3 py-1.5 rounded-full border border-nature-mid">Lv.{level}</span>
            </div>
         </header>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 relative">
            {children}
-        </div>
-
-        {/* Mobile Bottom Nav */}
-        <div className="md:hidden bg-white border-t border-slate-200 flex justify-around p-2 pb-safe z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-           {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setView(item.id as ViewState)}
-              className={`flex flex-col items-center gap-1 p-2 rounded-lg flex-1 transition-colors
-                ${currentView === item.id 
-                  ? 'text-indigo-600' 
-                  : 'text-slate-400'
-                }`}
-            >
-              <item.icon size={24} strokeWidth={currentView === item.id ? 2.5 : 2} />
-              <span className="text-[10px] font-bold">{item.label}</span>
-            </button>
-          ))}
         </div>
       </main>
     </div>

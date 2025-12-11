@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, Upload, Send, Lock, Star, Trophy } from 'lucide-react';
+import { X, CheckCircle2, Upload, Send, Star, Trophy, MapPin, ArrowRight, BookOpen } from 'lucide-react';
 import { SDGIsland, UserProgress } from '../types';
 
 interface IslandModalProps {
@@ -11,6 +11,8 @@ interface IslandModalProps {
   onClaimReward: (islandId: number) => void;
 }
 
+type ModalView = 'STORY' | 'TASKS' | 'COMPLETED';
+
 export const IslandModal: React.FC<IslandModalProps> = ({
   island,
   isOpen,
@@ -19,6 +21,7 @@ export const IslandModal: React.FC<IslandModalProps> = ({
   onCompleteTask,
   onClaimReward,
 }) => {
+  const [viewMode, setViewMode] = useState<ModalView>('STORY');
   const [loadingTask, setLoadingTask] = useState<number | null>(null);
   const [showRewardAnimation, setShowRewardAnimation] = useState(false);
 
@@ -26,16 +29,33 @@ export const IslandModal: React.FC<IslandModalProps> = ({
   const isIslandCompleted = progress.completedIslands.includes(island.id);
   const allTasksFinished = island.tasks.length === completedTaskIndices.length;
 
+  // Determine initial view based on status
   useEffect(() => {
-    if (isOpen && allTasksFinished && !isIslandCompleted) {
-       // Trigger reward flow if tasks are done but reward not claimed
+    if (isOpen) {
+        if (isIslandCompleted) {
+            setViewMode('COMPLETED');
+        } else if (allTasksFinished) {
+            // Pending claim
+            setViewMode('TASKS');
+        } else {
+            // New or in progress
+            setViewMode('STORY');
+        }
+    }
+  }, [isOpen, isIslandCompleted, allTasksFinished]);
+
+  // Handle Auto-Claim when tasks finish
+  useEffect(() => {
+    if (viewMode === 'TASKS' && allTasksFinished && !isIslandCompleted) {
        const timer = setTimeout(() => {
            onClaimReward(island.id);
            setShowRewardAnimation(true);
+           // After animation, switch to COMPLETED view to show knowledge
+           setTimeout(() => setViewMode('COMPLETED'), 1500);
        }, 500);
        return () => clearTimeout(timer);
     }
-  }, [allTasksFinished, isIslandCompleted, isOpen, island.id, onClaimReward]);
+  }, [viewMode, allTasksFinished, isIslandCompleted, island.id, onClaimReward]);
 
   if (!isOpen) return null;
 
@@ -43,7 +63,6 @@ export const IslandModal: React.FC<IslandModalProps> = ({
     if (completedTaskIndices.includes(index)) return;
 
     setLoadingTask(index);
-    // Simulate API/Upload delay
     setTimeout(() => {
       onCompleteTask(island.id, index);
       setLoadingTask(null);
@@ -57,109 +76,152 @@ export const IslandModal: React.FC<IslandModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-pop">
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-pop"
+        onClick={onClose} // Click outside to close
+    >
+      <div 
+        className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border-4 border-white"
+        onClick={e => e.stopPropagation()} // Prevent close when clicking inside
+      >
         
-        {/* Header */}
-        <div className={`h-32 ${island.color} relative flex items-center justify-center`}>
+        {/* Header - Solid Color, No Waves */}
+        <div className={`h-32 ${island.color} relative flex items-center justify-center flex-shrink-0`}>
           <button 
             onClick={onClose}
-            className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 text-white rounded-full p-2 transition-colors"
+            className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 transition-colors backdrop-blur-sm z-20"
           >
-            <X size={24} />
+            <X size={28} strokeWidth={3} />
           </button>
-          <div className="text-center text-white">
-            <h2 className="text-3xl font-black tracking-wider drop-shadow-md">SDG {island.id}</h2>
-            <p className="text-white/90 font-medium text-lg">{island.title}</p>
+          
+          <div className="text-center text-white z-10 mt-2 px-4">
+             <div className="bg-white/20 inline-block px-4 py-1 rounded-full text-xs md:text-sm font-black mb-1 backdrop-blur-sm">
+                SDG {island.id}
+             </div>
+             <h2 className="text-2xl md:text-3xl font-black tracking-wide drop-shadow-md">{island.title}</h2>
           </div>
-          {/* Decorative shapes */}
-          <div className="absolute bottom-0 left-0 w-full h-8 bg-white rounded-t-3xl"></div>
         </div>
 
-        {/* Content */}
+        {/* Dynamic Content Area */}
         <div className="p-6 pt-2 overflow-y-auto flex-1">
-            <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2 text-slate-500 text-sm font-bold uppercase tracking-wide">
-                    <span className="bg-slate-100 px-2 py-1 rounded">Location</span>
+            
+            {/* Location Tag - Fixed spacing, removed negative margin */}
+            <div className="flex justify-center mt-2 mb-6 relative z-10">
+                <div className="bg-white px-4 py-2 rounded-2xl shadow-md border-2 border-slate-100 flex items-center gap-2 text-emerald-600 font-bold text-sm">
+                    <MapPin size={16} fill="currentColor" />
                     {island.location_name}
                 </div>
-                <p className="text-slate-600 leading-relaxed text-sm bg-blue-50 p-3 rounded-xl border border-blue-100">
-                    {island.knowledge.split('：')[0]}... <span className="text-xs text-slate-400 block mt-1">(完成任務解鎖完整知識)</span>
-                </p>
             </div>
 
-            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                <span>📋</span> 冒險任務
-            </h3>
-            
-            <div className="space-y-3">
-                {island.tasks.map((task, idx) => {
-                    const isCompleted = completedTaskIndices.includes(idx);
-                    const isLoading = loadingTask === idx;
-
-                    return (
-                        <button
-                            key={idx}
-                            disabled={isCompleted || isLoading || isIslandCompleted}
-                            onClick={() => handleTaskClick(idx)}
-                            className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 flex items-start gap-3 group
-                                ${isCompleted 
-                                    ? 'border-green-500 bg-green-50 text-green-700' 
-                                    : 'border-slate-200 hover:border-blue-400 hover:bg-slate-50 bg-white'
-                                }
-                            `}
-                        >
-                            <div className={`mt-0.5 min-w-[24px] h-6 rounded-full flex items-center justify-center border transition-colors
-                                ${isCompleted ? 'bg-green-500 border-green-500 text-white' : 'border-slate-300 group-hover:border-blue-400'}
-                            `}>
-                                {isLoading ? (
-                                    <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    isCompleted ? <CheckCircle2 size={16} /> : getTaskIcon(task)
-                                )}
-                            </div>
-                            <span className={`text-sm font-medium ${isCompleted ? 'line-through opacity-70' : ''}`}>
-                                {task}
-                            </span>
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* Reward State */}
-            {isIslandCompleted && (
-                <div className="mt-8 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5 text-center animate-pop">
-                    <div className="flex justify-center mb-2">
-                        <Trophy className="text-yellow-500" size={40} />
+            {/* VIEW 1: STORY MODE */}
+            {viewMode === 'STORY' && (
+                <div className="animate-pop">
+                    <h3 className="font-black text-xl text-slate-700 mb-4 text-center">冒險故事</h3>
+                    <div className="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-sm leading-relaxed text-slate-600 text-justify mb-6 font-medium">
+                        {island.story}
                     </div>
-                    <h4 className="font-bold text-yellow-800 text-lg">島嶼征服！</h4>
-                    <p className="text-yellow-700 text-sm mb-3">你獲得了「{island.title}」徽章與知識卡</p>
-                    <div className="p-3 bg-white rounded-lg text-left text-sm text-slate-600 border border-yellow-100 shadow-sm">
-                        <strong className="block text-yellow-600 mb-1">💡 冷知識解鎖：</strong>
-                        {island.knowledge}
+                    <button 
+                        onClick={() => setViewMode('TASKS')}
+                        className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-lg shadow-lg shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                        接受挑戰 <ArrowRight strokeWidth={3} />
+                    </button>
+                </div>
+            )}
+
+            {/* VIEW 2: TASK MODE */}
+            {viewMode === 'TASKS' && (
+                <div className="animate-pop">
+                    <h3 className="font-black text-lg text-slate-700 mb-3 flex items-center gap-2 px-2">
+                        <span className="text-xl">📋</span> 今日任務
+                    </h3>
+                    
+                    <div className="space-y-3 mb-6">
+                        {island.tasks.map((task, idx) => {
+                            const isCompleted = completedTaskIndices.includes(idx);
+                            const isLoading = loadingTask === idx;
+
+                            return (
+                                <button
+                                    key={idx}
+                                    disabled={isCompleted || isLoading || isIslandCompleted}
+                                    onClick={() => handleTaskClick(idx)}
+                                    className={`w-full text-left p-4 rounded-2xl border-b-4 transition-all duration-300 flex items-center gap-4 group relative overflow-hidden
+                                        ${isCompleted 
+                                            ? 'border-emerald-200 bg-emerald-100 text-emerald-800' 
+                                            : 'border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-300'
+                                        }
+                                    `}
+                                >
+                                    <div className={`min-w-[32px] h-8 rounded-full flex items-center justify-center border-2 transition-colors z-10
+                                        ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-200 bg-slate-50 group-hover:border-emerald-400'}
+                                    `}>
+                                        {isLoading ? (
+                                            <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            isCompleted ? <CheckCircle2 size={18} strokeWidth={3} /> : getTaskIcon(task)
+                                        )}
+                                    </div>
+                                    <span className={`text-sm font-bold z-10 ${isCompleted ? 'line-through opacity-70' : 'text-slate-700'}`}>
+                                        {task}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    {/* Back to story button */}
+                    <button 
+                        onClick={() => setViewMode('STORY')}
+                        className="w-full py-3 text-slate-400 hover:text-slate-600 font-bold text-sm"
+                    >
+                        回顧故事
+                    </button>
+                </div>
+            )}
+
+            {/* VIEW 3: COMPLETED / KNOWLEDGE MODE */}
+            {viewMode === 'COMPLETED' && (
+                <div className="animate-pop text-center">
+                    <div className="inline-block bg-yellow-100 p-4 rounded-full mb-4 shadow-sm border-2 border-yellow-200">
+                         <Trophy className="text-yellow-500" size={40} fill="currentColor" />
+                    </div>
+                    <h3 className="font-black text-2xl text-slate-800 mb-2">任務完成！</h3>
+                    <p className="text-slate-500 font-bold mb-6">你獲得了新的知識碎片</p>
+
+                    <div className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm text-left relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <BookOpen size={100} />
+                        </div>
+                        <h4 className="font-black text-emerald-700 mb-2 flex items-center gap-2">
+                            SDG {island.id} 知識卡
+                        </h4>
+                        <p className="text-slate-700 leading-relaxed font-medium relative z-10">
+                            {island.knowledge}
+                        </p>
+                    </div>
+
+                    <div className="mt-8 flex gap-3">
+                        <button onClick={() => setViewMode('STORY')} className="flex-1 py-3 bg-slate-100 rounded-xl text-slate-500 font-bold hover:bg-slate-200 transition-colors">
+                            重看故事
+                        </button>
+                        <button onClick={onClose} className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-colors">
+                            太棒了！
+                        </button>
                     </div>
                 </div>
             )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-            <button onClick={onClose} className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-colors">
-                {isIslandCompleted ? '關閉' : '稍後再說'}
-            </button>
-        </div>
-
-        {/* Confetti Overlay (CSS simulated) */}
+        {/* Reward Animation Overlay */}
         {showRewardAnimation && (
-             <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50">
-                 <div className="absolute inset-0 bg-yellow-400/20 animate-pulse"></div>
-                 <Star className="absolute text-yellow-400 animate-bounce-slow top-1/4 left-1/4" size={40} />
-                 <Star className="absolute text-blue-400 animate-bounce-slow top-1/3 right-1/4" size={30} style={{animationDelay: '0.5s'}} />
-                 <Star className="absolute text-red-400 animate-bounce-slow bottom-1/3 left-1/3" size={50} style={{animationDelay: '1s'}} />
-                 <div className="bg-white px-8 py-4 rounded-full shadow-xl z-50 animate-pop">
-                     <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-red-500">
+             <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50 overflow-hidden rounded-[2.5rem] bg-white/90 backdrop-blur-sm">
+                 <Star className="absolute text-yellow-400 animate-bounce-slow top-1/4 left-1/4 drop-shadow-lg" size={60} fill="currentColor" />
+                 <Star className="absolute text-emerald-400 animate-bounce-slow top-1/3 right-1/4 drop-shadow-lg" size={40} fill="currentColor" style={{animationDelay: '0.5s'}} />
+                 <div className="bg-white px-10 py-8 rounded-3xl shadow-2xl z-50 animate-pop border-4 border-yellow-200 text-center transform rotate-3">
+                     <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-orange-500">
                          Level Up!
                      </span>
+                     <p className="text-slate-400 font-bold mt-2">徽章入手</p>
                  </div>
              </div>
         )}

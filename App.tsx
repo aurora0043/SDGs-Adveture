@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowRight, Globe } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, Leaf, Trees, Globe, Sparkles } from 'lucide-react';
 import { useGamePersistence } from './hooks/useGamePersistence';
 import { Layout } from './components/Layout';
 import { IslandGrid } from './components/IslandGrid';
@@ -7,6 +7,7 @@ import { IslandModal } from './components/IslandModal';
 import { KnowledgeGallery } from './components/KnowledgeGallery';
 import { Profile } from './components/Profile';
 import { SDGIsland, ViewState } from './types';
+import { TOTAL_ISLANDS } from './constants';
 
 function App() {
   const { 
@@ -22,15 +23,26 @@ function App() {
   
   const [currentView, setCurrentView] = useState<ViewState>('LANDING');
   const [selectedIsland, setSelectedIsland] = useState<SDGIsland | null>(null);
+  const [showFinalAnimation, setShowFinalAnimation] = useState(false);
+
+  // Check for game completion
+  useEffect(() => {
+     if (isLoaded && progress.completedIslands.length === TOTAL_ISLANDS) {
+         // Check if we haven't shown it this session, or check a flag. 
+         // For now, let's just show it if they just completed the last one.
+         // In a real app we'd store 'hasViewedEnding' in persistence.
+         const justFinished = progress.completedIslands.length === TOTAL_ISLANDS;
+         if (justFinished) {
+             // Delay slightly to let the modal close
+             setTimeout(() => setShowFinalAnimation(true), 2000);
+         }
+     }
+  }, [progress.completedIslands.length, isLoaded]);
 
   if (!isLoaded) {
-      return <div className="h-screen w-screen flex items-center justify-center bg-sky-50 text-indigo-500">Loading...</div>;
+      return <div className="h-screen w-screen flex items-center justify-center bg-nature-light text-nature-dark font-bold text-xl">Loading...</div>;
   }
 
-  // Determine if we should show landing page (if no progress) or auto-switch
-  // If user has progress (level > 1 or completed tasks), we might skip landing, 
-  // but for UX let's keep landing until they click Start if they are on LANDING view.
-  
   const handleStartAdventure = () => {
     setCurrentView('MAP');
   };
@@ -54,46 +66,54 @@ function App() {
 
   if (currentView === 'LANDING') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-        <div className="bg-white rounded-[2.5rem] p-8 md:p-16 max-w-2xl w-full shadow-2xl text-center relative overflow-hidden">
-          {/* Decorative Background Elements */}
-          <div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-r from-yellow-400 via-red-400 to-blue-400"></div>
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-yellow-200 rounded-full blur-3xl opacity-50"></div>
+      <div className="min-h-screen bg-[#ecfccb] relative overflow-hidden flex items-center justify-center p-4">
+        {/* Background blobs */}
+        <div className="absolute top-0 left-0 w-64 h-64 bg-green-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float"></div>
+        <div className="absolute top-0 right-0 w-72 h-72 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float" style={{animationDelay: '1s'}}></div>
+        <div className="absolute -bottom-8 left-20 w-80 h-80 bg-emerald-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-float" style={{animationDelay: '2s'}}></div>
+
+        <div className="bg-white/80 backdrop-blur-md rounded-[3rem] p-8 md:p-12 max-w-2xl w-full shadow-[0_20px_50px_rgba(8,112,24,0.15)] text-center relative z-10 border-4 border-white">
           
-          <div className="relative z-10">
-            <div className="inline-block p-4 rounded-full bg-indigo-50 mb-6 animate-bounce-slow">
-              <Globe className="text-indigo-600 w-16 h-16" />
-            </div>
-            
-            <h1 className="text-4xl md:text-6xl font-black text-slate-800 mb-4 tracking-tight">
-              SDG <span className="text-indigo-600">Adventure</span>
-            </h1>
-            
-            <p className="text-lg md:text-xl text-slate-500 mb-8 max-w-lg mx-auto leading-relaxed">
-              開啟改變世界的旅程！探索 17 座神祕島嶼，完成永續挑戰，成為守護地球的英雄。
-            </p>
-
-            <div className="bg-slate-50 p-6 rounded-2xl mb-8 border border-slate-100">
-               <h3 className="font-bold text-slate-700 mb-2">什麼是 SDGs？</h3>
-               <p className="text-sm text-slate-500">
-                 聯合國制定的 17 項永續發展目標，旨在消除貧窮、保護地球，確保所有人在 2030 年前享有和平與繁榮。
-               </p>
-            </div>
-
-            <button 
-              onClick={handleStartAdventure}
-              className="group relative inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-full text-xl font-bold hover:bg-indigo-600 transition-all shadow-lg hover:shadow-indigo-300 hover:-translate-y-1"
-            >
-              開始冒險
-              <ArrowRight className="group-hover:translate-x-1 transition-transform" />
-            </button>
-            
-            {progress.completedIslands.length > 0 && (
-                <p className="mt-6 text-sm text-slate-400 font-medium">
-                    歡迎回來，{progress.userName}！ (Lv.{level})
-                </p>
-            )}
+          <div className="relative inline-block mb-6">
+             <div className="absolute inset-0 bg-green-200 rounded-full animate-ping opacity-25"></div>
+             <div className="bg-gradient-to-br from-green-400 to-emerald-600 p-5 rounded-full text-white shadow-lg animate-bounce-slow relative z-10">
+                <Trees size={48} />
+             </div>
           </div>
+            
+          <h1 className="text-4xl md:text-5xl font-black text-slate-800 mb-4 tracking-tight">
+            SDG <span className="text-emerald-500">Adventure</span>
+          </h1>
+            
+          <p className="text-lg text-slate-600 mb-8 max-w-lg mx-auto font-bold leading-relaxed">
+            嗨！歡迎來到這片神奇的群島。<br/>
+            這裡有 17 座綠色小島等著你去探索，<br/>
+            讓我們一起完成任務，守護地球！
+          </p>
+
+          <div className="bg-green-50 p-6 rounded-3xl mb-8 border-2 border-green-100">
+              <h3 className="font-bold text-emerald-700 mb-2 flex items-center justify-center gap-2">
+                <Leaf size={18} />
+                我們的任務
+              </h3>
+              <p className="text-sm text-emerald-800/70 font-medium">
+                透過生活中的小行動，實踐聯合國 17 項永續發展目標，讓世界變得更可愛、更美好。
+              </p>
+          </div>
+
+          <button 
+            onClick={handleStartAdventure}
+            className="group relative inline-flex items-center gap-3 px-10 py-5 bg-slate-800 text-white rounded-full text-xl font-bold hover:bg-emerald-500 hover:scale-105 transition-all shadow-xl hover:shadow-emerald-200"
+          >
+            出發去冒險
+            <ArrowRight className="group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+          </button>
+            
+          {progress.completedIslands.length > 0 && (
+              <p className="mt-6 text-xs text-slate-400 font-bold bg-white px-4 py-2 rounded-full inline-block shadow-sm">
+                  歡迎回來，{progress.userName}！ (Lv.{level})
+              </p>
+          )}
         </div>
       </div>
     );
@@ -118,6 +138,40 @@ function App() {
           onCompleteTask={completeTask}
           onClaimReward={claimReward}
         />
+      )}
+
+      {/* FINAL ACHIEVEMENT ANIMATION */}
+      {showFinalAnimation && (
+        <div className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-800 via-emerald-950 to-black flex flex-col items-center justify-center text-white p-4 animate-[fadeIn_2s_ease-out]">
+            <div className="relative w-full h-full max-w-lg max-h-[800px] flex flex-col items-center justify-center">
+                
+                {/* Earth Animation */}
+                <div className="relative mb-12">
+                     <div className="absolute inset-0 bg-emerald-500 rounded-full blur-[100px] animate-pulse"></div>
+                     <Globe size={200} className="text-emerald-400 animate-[spin_10s_linear_infinite]" strokeWidth={1} />
+                     <Sparkles size={80} className="absolute top-0 right-0 text-yellow-300 animate-bounce" />
+                     <Sparkles size={60} className="absolute bottom-10 left-0 text-white animate-bounce-slow" />
+                </div>
+
+                <div className="text-center space-y-6 relative z-10 animate-[slideUp_1s_ease-out_1s_both]">
+                    <h2 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-200 drop-shadow-lg">
+                        地球公民<br/>覺醒
+                    </h2>
+                    <div className="h-1 w-32 bg-emerald-500 mx-auto rounded-full"></div>
+                    <p className="text-xl md:text-2xl font-bold text-slate-300 max-w-md mx-auto leading-relaxed">
+                        恭喜你！你已從一名冒險者，<br/>覺醒為真正的地球守護者！
+                    </p>
+                    <p className="text-emerald-400 font-medium">未來的路，讓我們繼續同行。</p>
+                </div>
+
+                <button 
+                    onClick={() => setShowFinalAnimation(false)}
+                    className="mt-12 px-10 py-4 bg-white text-emerald-900 rounded-full font-black text-xl hover:scale-105 transition-transform shadow-[0_0_40px_rgba(255,255,255,0.3)]"
+                >
+                    繼續旅程
+                </button>
+            </div>
+        </div>
       )}
     </Layout>
   );

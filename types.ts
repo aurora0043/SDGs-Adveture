@@ -2,6 +2,7 @@ export interface SDGIsland {
   id: number;
   title: string;
   location_name: string;
+  story: string; // New field for the intro story
   tasks: string[];
   knowledge: string;
   color: string;
