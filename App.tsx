@@ -1,3 +1,5 @@
+import { supabase } from './supabaseClient';
+
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Leaf, Trees, Globe, Sparkles } from 'lucide-react';
 import { useGamePersistence } from './hooks/useGamePersistence';
@@ -8,6 +10,7 @@ import { KnowledgeGallery } from './components/KnowledgeGallery';
 import { Profile } from './components/Profile';
 import { SDGIsland, ViewState } from './types';
 import { TOTAL_ISLANDS } from './constants';
+
 
 function App() {
   const { 
@@ -25,17 +28,38 @@ function App() {
   const [selectedIsland, setSelectedIsland] = useState<SDGIsland | null>(null);
   const [showFinalAnimation, setShowFinalAnimation] = useState(false);
 
-  // Check for game completion
+  // --- 新增：自動同步帳號資料到 Supabase ---
+  useEffect(() => {
+    const syncData = async () => {
+      // 只有在資料載入完成，且玩家有名字時才同步
+      if (isLoaded && progress.userName) {
+        const { error } = await supabase
+          .from('players') // 建議資料表名稱叫 players
+          .upsert({ 
+            username: progress.userName, // 以用戶名作為唯一識別 (或是用 ID)
+            level: level,
+            completed_count: progress.completedIslands.length,
+            last_palyed: new Date().toISOString(),
+            // 你也可以把整個 progress 物件轉成 JSON 存入
+            raw_progress: progress 
+          }, { onConflict: 'username' }); // 如果名字重複，就更新該筆資料
+
+        if (error) console.error('同步至雲端失敗:', error.message);
+        else console.log('進度已同步至雲端');
+      }
+    };
+
+    syncData();
+  }, [progress, level, isLoaded]); // 當進度或等級改變時，自動觸發同步
+  // --------------------------------------
+
+  // Check for game completion (保持不變)
   useEffect(() => {
      if (isLoaded && progress.completedIslands.length === TOTAL_ISLANDS) {
-         // Check if we haven't shown it this session, or check a flag. 
-         // For now, let's just show it if they just completed the last one.
-         // In a real app we'd store 'hasViewedEnding' in persistence.
-         const justFinished = progress.completedIslands.length === TOTAL_ISLANDS;
-         if (justFinished) {
-             // Delay slightly to let the modal close
-             setTimeout(() => setShowFinalAnimation(true), 2000);
-         }
+        const justFinished = progress.completedIslands.length === TOTAL_ISLANDS;
+        if (justFinished) {
+            setTimeout(() => setShowFinalAnimation(true), 2000);
+        }
      }
   }, [progress.completedIslands.length, isLoaded]);
 
@@ -176,5 +200,16 @@ function App() {
     </Layout>
   );
 }
+
+useEffect(() => {
+  // 隨便寫一個讀取動作測試
+  const testFetch = async () => {
+    const { data } = await supabase.from('leaderboard').select('*');
+    console.log('連線測試資料：', data);
+  };
+
+  testFetch();
+}, []); // 網頁載入時執行一次
+
 
 export default App;
